@@ -1,19 +1,21 @@
 var http = require('http');
 var fs = require('fs');
+var ping = require('net-ping');
+var readline = require('readline');
 
 var bootstrap_css = null;
 fs.readFile('web_interface/bootstrap/bootstrap.min.css', function(err, data) {
-  main = data;
+  bootstrap_css = data;
 });
 
 var bootstrap_js = null;
 fs.readFile('web_interface/bootstrap/bootstrap.min.js', function(err, data) {
-  main = data;
+  bootstrap_js = data;
 });
 
 var custom_css = null;
 fs.readFile('web_interface/bootstrap/custom.css', function(err, data) {
-  main = data;
+  custom_css = data;
 });
 
 var main = null;
@@ -35,25 +37,52 @@ function resolve_url(url) {
   var ret;
   switch (url) {
     case '/':
-    ret = main;
-    break;
+      ret = main;
+      break;
     case '/login':
-    ret = login;
-    break;
+      ret = login;
+      break;
     case '/register':
-    ret = register;
-    break
+      ret = register;
+      break
+    case '/bootstrap/bootstrap.min.css':
+      ret = bootstrap_css;
+      break;
+    case 'bootstrap/bootstrap.min.js':
+      ret = bootstrap_js;
+      break;
+    case 'bootstrap/custom.css':
+      ret = custom_css;
+      break;
     default:
-    ret = '404.html';
+      ret = '404.html';
     break;
   }
   return ret;
 }
 
+var session = ping.createSession();
+
+
+var rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+})
+
+rl.on('line', (data) => {
+  var target = data.toString();
+  session.pingHost(target, function(error, target){
+    if(error){
+      console.log(target + error.toString())
+    } else {
+      console.log(target + ": Alive!");
+    }
+  })
+})
+
 http.createServer(function (req, res) {
 
   if(req.method == 'GET'){
-    res.writeHead(200, {'Content-Type': 'text/html'});
     res.write(resolve_url(req.url));
     res.end();
   }
