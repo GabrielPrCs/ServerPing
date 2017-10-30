@@ -92,22 +92,23 @@ http.createServer(function (req, res) {
   if(resolve_url(req.url) == 'REQUEST'){
     var query = url_pk.parse(req.url, true).query;
     var status = null;
-    session.pingHost(query.ip, function(error, query.ip, sent, rcvd){
+    session.pingHost(query.ip, function(error, ip, sent, rcvd){
       if(error){
         console.log(ip + error.toString());
         status = 'ERROR';
       } else {
         var lat = (rcvd.getTime() - sent.getTime()) / 2;
-        status = 'OKIP';
-        if(req.method == 'GET'){
+        status = 'Answer from: ' + ip + '-- Latency: ' + lat;
+        console.log('Ping response from: ' + ip);
+        socket.connect(query.port, ip, function() {
+          console.log('Ping connected to port: ' + query.port);
+          status += '\nPORT status: OK';
+          socket.destroy();
           res.write(status);
           res.end();
-        }
+        });
+
       }
-    });
-    socket.connect(port, ip, function() {
-      status += ':OKPORT';
-      socket.destroy();
     });
   }
 
