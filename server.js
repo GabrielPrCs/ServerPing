@@ -20,6 +20,11 @@ fs.readFile('web_interface/bootstrap/custom.css', function(err, data) {
   custom_css = data;
 });
 
+var requester = null;
+fs.readFile('web_interface/scripts/requester.js', function(err, data) {
+  requester = data;
+});
+
 var main = null;
 fs.readFile('web_interface/main.html', function(err, data) {
   main = data;
@@ -37,6 +42,7 @@ fs.readFile('web_interface/register.html', function(err, data) {
 
 function resolve_url(url) {
   var ret;
+  console.log('Resolve URL: ' + url);
   switch (url) {
     case '/':
       ret = main;
@@ -50,11 +56,14 @@ function resolve_url(url) {
     case '/bootstrap/bootstrap.min.css':
       ret = bootstrap_css;
       break;
-    case 'bootstrap/bootstrap.min.js':
+    case '/bootstrap/bootstrap.min.js':
       ret = bootstrap_js;
       break;
-    case 'bootstrap/custom.css':
+    case '/bootstrap/custom.css':
       ret = custom_css;
+      break;
+    case '/scripts/requester.js':
+      ret = requester;
       break;
     default:
       ret = '404.html';
