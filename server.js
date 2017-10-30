@@ -65,6 +65,10 @@ function resolve_url(url) {
     case '/scripts/requester.js':
       ret = requester;
       break;
+    case '/request':
+      var query = url.parse(url, true).query;
+      ret = checkServerStatus(query.ip, query.port)
+      break;
     default:
       ret = '404.html';
     break;
@@ -82,27 +86,34 @@ var rl = readline.createInterface({
 
 var socket = new net.Socket();
 
-rl.on('line', (data) => {
-  var dest = data.split(':');
-  var target = dest[0].toString();
-  session.pingHost(target, function(error, target, sent, rcvd){
+function checkServerStatus(ip, port) {
+  var status = {false, false};
+  session.pingHost(target, function(error, ip, sent, rcvd){
     if(error){
       console.log(target + error.toString())
     } else {
       var lat = (rcvd.getTime() - sent.getTime()) / 2;
-      console.log(target + ": Alive!\nLatency: " + lat);
+      status[0] = true;
     }
   });
-  socket.connect(dest[1], dest[0], function() {
-    console.log('Port alive!');
+  socket.connect(port, ip, function() {
+    status[1] = true;
     socket.destroy();
   });
-})
+  setTimeout(function(){
+
+  }, 3000);
+  return status;
+}
 
 http.createServer(function (req, res) {
 
   if(req.method == 'GET'){
-    res.write(resolve_url(req.url));
+    var query = resolve_url(req.url)
+    try{
+      query[1]
+    };
+    res.write();
     res.end();
   }
 
