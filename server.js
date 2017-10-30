@@ -67,8 +67,7 @@ function resolve_url(url) {
     ret = requester;
     break;
     case '/request':
-    var query = url_pk.parse(url, true).query;
-    ret = checkServerStatus(query.ip, query.port);
+    ret = 'REQUEST';
     break;
     default:
     ret = '404.html';
@@ -87,30 +86,30 @@ var rl = readline.createInterface({
 
 var socket = new net.Socket();
 
-function checkServerStatus(ip, port) {
-  var status = 'ERROR';
-  setTimeout(function(){
-    session.pingHost(ip, function(error, ip, sent, rcvd){
+
+
+http.createServer(function (req, res) {
+  if(resolve_url(req.url) == 'REQUEST'){
+    var query = url_pk.parse(req.url, true).query;
+    var status = null;
+    session.pingHost(query.ip, function(error, query.ip, sent, rcvd){
       if(error){
-        console.log(ip + error.toString())
+        console.log(ip + error.toString());
+        status = 'ERROR';
       } else {
         var lat = (rcvd.getTime() - sent.getTime()) / 2;
         status = 'OKIP';
+        if(req.method == 'GET'){
+          res.write(status);
+          res.end();
+        }
       }
     });
     socket.connect(port, ip, function() {
       status += ':OKPORT';
       socket.destroy();
     });
-  }, 3000);
-  return status;
-}
-
-http.createServer(function (req, res) {
-
-  if(req.method == 'GET'){
-    res.write(resolve_url(req.url));
-    res.end();
   }
+
 
 }).listen(8080);
