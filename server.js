@@ -2,6 +2,8 @@ var http = require('http');
 var fs = require('fs');
 var ping = require('net-ping');
 var readline = require('readline');
+var net = require('net');
+
 
 var bootstrap_css = null;
 fs.readFile('web_interface/bootstrap/bootstrap.min.css', function(err, data) {
@@ -69,15 +71,23 @@ var rl = readline.createInterface({
   output: process.stdout
 })
 
+var socket = new net.Socket();
+
 rl.on('line', (data) => {
-  var target = data.toString();
-  session.pingHost(target, function(error, target){
+  var dest = data.split(':');
+  var target = dest[0].toString();
+  session.pingHost(target, function(error, target, sent, rcvd){
     if(error){
       console.log(target + error.toString())
     } else {
-      console.log(target + ": Alive!");
+      var lat = (rcvd.getTime() - sent.getTime()) / 2;
+      console.log(target + ": Alive!\nLatency: " + lat);
     }
-  })
+  });
+  socket.connect(dest[1], dest[0], function() {
+    console.log('Port alive!');
+    socket.destroy();
+  });
 })
 
 http.createServer(function (req, res) {
