@@ -3,7 +3,7 @@ var fs = require('fs');
 var ping = require('net-ping');
 var readline = require('readline');
 var net = require('net');
-
+var url_pk = require('url');
 
 var bootstrap_css = null;
 fs.readFile('web_interface/bootstrap/bootstrap.min.css', function(err, data) {
@@ -41,36 +41,37 @@ fs.readFile('web_interface/register.html', function(err, data) {
 });
 
 function resolve_url(url) {
+  var req = url.split('?');
   var ret;
   console.log('Resolve URL: ' + url);
-  switch (url) {
+  switch (req[0]) {
     case '/':
-      ret = main;
-      break;
-    case '/login':
-      ret = login;
-      break;
-    case '/register':
-      ret = register;
-      break
+    ret = main;
+    break;
+    case '/login.html':
+    ret = login;
+    break;
+    case '/register.html':
+    ret = register;
+    break;
     case '/bootstrap/bootstrap.min.css':
-      ret = bootstrap_css;
-      break;
+    ret = bootstrap_css;
+    break;
     case '/bootstrap/bootstrap.min.js':
-      ret = bootstrap_js;
-      break;
+    ret = bootstrap_js;
+    break;
     case '/bootstrap/custom.css':
-      ret = custom_css;
-      break;
+    ret = custom_css;
+    break;
     case '/scripts/requester.js':
-      ret = requester;
-      break;
+    ret = requester;
+    break;
     case '/request':
-      var query = url.parse(url, true).query;
-      ret = checkServerStatus(query.ip, query.port)
-      break;
+    var query = url_pk.parse(url, true).query;
+    ret = checkServerStatus(query.ip, query.port);
+    break;
     default:
-      ret = '404.html';
+    ret = '404.html';
     break;
   }
   return ret;
@@ -87,21 +88,20 @@ var rl = readline.createInterface({
 var socket = new net.Socket();
 
 function checkServerStatus(ip, port) {
-  var status = {false, false};
-  session.pingHost(target, function(error, ip, sent, rcvd){
-    if(error){
-      console.log(target + error.toString())
-    } else {
-      var lat = (rcvd.getTime() - sent.getTime()) / 2;
-      status[0] = true;
-    }
-  });
-  socket.connect(port, ip, function() {
-    status[1] = true;
-    socket.destroy();
-  });
+  var status = 'ERROR';
   setTimeout(function(){
-
+    session.pingHost(ip, function(error, ip, sent, rcvd){
+      if(error){
+        console.log(ip + error.toString())
+      } else {
+        var lat = (rcvd.getTime() - sent.getTime()) / 2;
+        status = 'OKIP';
+      }
+    });
+    socket.connect(port, ip, function() {
+      status += ':OKPORT';
+      socket.destroy();
+    });
   }, 3000);
   return status;
 }
@@ -109,11 +109,7 @@ function checkServerStatus(ip, port) {
 http.createServer(function (req, res) {
 
   if(req.method == 'GET'){
-    var query = resolve_url(req.url)
-    try{
-      query[1]
-    };
-    res.write();
+    res.write(resolve_url(req.url));
     res.end();
   }
 

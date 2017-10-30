@@ -1,9 +1,10 @@
-// var xhttp = new XMLHttpRequest();
-//
-// var ip = document.getElementById('ip');
-// var port = document.getElementById('port');
-//
-// function send_request() {
-//   alert(ip);
-//   alert(port);
-// }
+
+var xhttp = new XMLHttpRequest();
+
+var button = document.getElementById('request_button');
+var ip = document.getElementById('ip').value;
+var port = document.getElementById('port').value;
+
+button.onclick = function(){
+
+};
