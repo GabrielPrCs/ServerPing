@@ -84,31 +84,67 @@ var rl = readline.createInterface({
   output: process.stdout
 })
 
-var socket = new net.Socket();
+function Server_tester(req_ip, req_port){
+  this.ip = req_ip;
+  this.port = req_port;
+  this.latency = 0;
+  this.ip_status = false;
+  this.port_status = false;
+  this.response_status_ready = false;
 
+  var self = this;
 
+  console.log('Worker created for: ' + this.ip + ':' + this.port);
+  console.log('Ping sent to: ' + this.ip);
+
+  session.pingHost(this.ip, function(error, ip, sent, rcvd){
+    if(error){
+      console.log('Ping error: '  + error.toString());
+      self.response_status_ready = true;
+    } else {
+      self.latency = (rcvd.getTime() - sent.getTime()) / 2;
+      self.ip_status = true;
+      console.log('Ping response from: ' + ip);
+      console.log('latency: ' + self.latency);
+      self.test_port();
+    }
+  });
+
+}
+
+Server_tester.prototype.test_port = function(){
+  var socket = new net.Socket();
+  var self = this;
+
+  console.log('Trying to establish connection on ' + this.ip + ':' + this.port);
+
+  socket.connect(self.port, self.ip, function(){
+    console.log('Connection established on ' + self.ip + ':' + self.port);
+    self.port_status = true;
+    self.response_status_ready = true;
+  });
+
+  socket.on('error', function(err){
+    console.log('Failed to establish connection.');
+    self.response_status_ready = true;
+  });
+};
 
 http.createServer(function (req, res) {
+  console.log('Incoming request...');
   if(resolve_url(req.url) == 'REQUEST'){
     var query = url_pk.parse(req.url, true).query;
-    var ip_status = false;
-    var port_status = false;
-    session.pingHost(query.ip, function(error, ip, sent, rcvd){
-      if(error){
-        console.log(ip + error.toString());
-      } else {
-        var lat = (rcvd.getTime() - sent.getTime()) / 2;
-        ip_status = true;
-        console.log('Ping response from: ' + ip);
-        socket.connect(query.port, ip, function() {
-          console.log('Ping connected to port: ' + query.port);
-          port_status = true;
-          socket.destroy();
-        });
+    var tester = new Server_tester(query.ip, query.port);
+    setInterval(function() {
+      console.log('Checking request status...');
+      if(tester.response_status_ready){
+        var response = 'Server status: ' + tester.ip_status + '\nLatency: ' + tester.latency + '\nPort status: ' + tester.port_status;
+        console.log('Response sent.');
+        res.write(response);
+        res.end();
+        clearInterval(this);
       }
-      res.write(ip_status + " " + port_status);
-      res.end();
-    });
+    }, 3000);
   }
 
 
