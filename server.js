@@ -5,6 +5,13 @@ var readline = require('readline');
 var net = require('net');
 var url_pk = require('url');
 
+
+
+var rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+})
+
 var bootstrap_css = null;
 fs.readFile('web_interface/bootstrap/bootstrap.min.css', function(err, data) {
   bootstrap_css = data;
@@ -66,8 +73,10 @@ function resolve_url(url) {
     case '/scripts/requester.js':
     ret = requester;
     break;
-    case '/request':
-    ret = 'REQUEST';
+    case '/getnodes':
+    var result = nodes.status();
+    console.log(result);
+    ret = JSON.stringify(result);
     break;
     default:
     ret = '404.html';
@@ -78,11 +87,48 @@ function resolve_url(url) {
 
 var session = ping.createSession();
 
+var Nodes_list = function() {
+  this.nodes = [];
+  this.interval = 10000;
+  var self = this;
+  setInterval(function(){
+    self.nodes.forEach(function(node){
+      node.test_ip();
+    });
+  },this.interval);
+}
 
-var rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-})
+Nodes_list.prototype.exists = function(ip, port) {
+  for (var i = 0; i < this.nodes.length; i++) {
+    var node = this.nodes[i];
+    if(node.ip == ip && node.port == port){
+      return true;
+    }
+  }
+}
+
+Nodes_list.prototype.add = function(ip, port) {
+  if(!this.exists(ip, port)){
+    var node = new Server_tester(ip, port);
+    this.nodes.push(node);
+  }
+}
+
+Nodes_list.prototype.status = function() {
+  var result = [];
+  this.nodes.forEach(function(node){
+    if(node.response_status_ready){
+      result.push({
+        ip: node.ip,
+        port: node.port,
+        ip_status: node.ip_status,
+        port_status: node.port_status,
+        latency: node.latency
+      })
+    }
+  });
+  return result;
+}
 
 function Server_tester(req_ip, req_port){
   this.ip = req_ip;
@@ -91,12 +137,14 @@ function Server_tester(req_ip, req_port){
   this.ip_status = false;
   this.port_status = false;
   this.response_status_ready = false;
-
+  this.interval = 10000;
   var self = this;
-
   console.log('Worker created for: ' + this.ip + ':' + this.port);
-  console.log('Ping sent to: ' + this.ip);
+}
 
+Server_tester.prototype.test_ip = function() {
+  var self = this;
+  console.log('Ping sent to: ' + this.ip);
   session.pingHost(this.ip, function(error, ip, sent, rcvd){
     if(error){
       console.log('Ping error: '  + error.toString());
@@ -109,7 +157,6 @@ function Server_tester(req_ip, req_port){
       self.test_port();
     }
   });
-
 }
 
 Server_tester.prototype.test_port = function(){
@@ -130,27 +177,28 @@ Server_tester.prototype.test_port = function(){
   });
 };
 
+var nodes = new Nodes_list();
+
 http.createServer(function (req, res) {
-  console.log('Incoming request...');
+  console.log('New incoming request...');
 
-  if(resolve_url(req.url) == 'REQUEST'){
-    var query = url_pk.parse(req.url, true).query;
-    var tester = new Server_tester(query.ip, query.port);
-    setInterval(function() {
-      console.log('Checking request status...');
-      if(tester.response_status_ready){
-        var response = 'Server status: ' + tester.ip_status + '\nLatency: ' + tester.latency + '\nPort status: ' + tester.port_status;
-        console.log('Response sent.');
-        res.write(response);
-        res.end();
-        clearInterval(this);
-      }
-    }, 3000);
-  } else {
-      console.log('Test');
-      res.write(resolve_url(req.url));
+  if(req.method == 'POST') {
+    var body = "";
+    req.on('data', function(data){
+      body += data.toString();
+    });
+    req.on('end',function(){
+      node = JSON.parse(body);
+      console.log("Received request: add node - " + node);
+      nodes.add(node.ip, node.port);
+      res.write("Node received");
       res.end();
+    })
   }
-
+  else if(req.method == 'GET') {
+    console.log('Sending file');
+    res.write(resolve_url(req.url));
+    res.end();
+  }
 
 }).listen(8080);
