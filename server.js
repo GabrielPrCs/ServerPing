@@ -132,6 +132,7 @@ Server_tester.prototype.test_port = function(){
 
 http.createServer(function (req, res) {
   console.log('Incoming request...');
+
   if(resolve_url(req.url) == 'REQUEST'){
     var query = url_pk.parse(req.url, true).query;
     var tester = new Server_tester(query.ip, query.port);
@@ -145,6 +146,10 @@ http.createServer(function (req, res) {
         clearInterval(this);
       }
     }, 3000);
+  } else {
+      console.log('Test');
+      res.write(resolve_url(req.url));
+      res.end();
   }
 
 
