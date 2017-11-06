@@ -66,15 +66,24 @@ Nodes_list.prototype.exists = function(ip, port) {
   for (var i = 0; i < this.nodes.length; i++) {
     var node = this.nodes[i];
     if(node.ip == ip && node.port == port){
-      return true;
+      return i;
     }
   }
+  return false;
 }
 
 Nodes_list.prototype.add = function(ip, port) {
   if(!this.exists(ip, port)){
     var node = new Server_tester(ip, port);
     this.nodes.push(node);
+  }
+}
+
+Nodes_list.prototype.remove = function(ip, port) {
+  var i = this.exists(ip, port);
+  console.log('Removing: ' + i);
+  if(i >= 0){
+    this.nodes.splice(i, 1);
   }
 }
 
@@ -155,6 +164,7 @@ http.createServer(function (req, res) {
   console.log('New incoming request...');
 
   if(req.method == 'POST') {
+    console.log('POST request...')
     var body = "";
     req.on('data', function(data){
       body += data.toString();
@@ -166,9 +176,22 @@ http.createServer(function (req, res) {
       res.write("Node received");
       res.end();
     })
+  } else if (req.method == 'DELETE') {
+    console.log('DELETE request...');
+    var body = "";
+    req.on('data', function(data){
+      body += data.toString();
+    });
+    req.on('end', function(){
+      node = JSON.parse(body);
+      console.log("Received request: delete node - " + node.ip + ':' + node.port);
+      nodes.remove(node.ip, node.port);
+      res.write("Node removed");
+      res.end();
+    })
   }
   else if(req.method == 'GET') {
-    console.log('Sending file');
+    console.log('GET request...');
     res.write(resolve_url(req.url));
     res.end();
   }

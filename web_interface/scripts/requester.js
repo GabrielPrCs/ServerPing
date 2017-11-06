@@ -4,11 +4,20 @@ var servers_table = document.getElementById('servers_table');
 var servers_table_body = document.getElementById('servers_table_body');
 
 
+
 var poster = new XMLHttpRequest();
 var post_url = "postnode";
 poster.onreadystatechange = function() {
   if(poster.readyState == 4 && poster.status == 200){
     console.log(poster.responseText);
+  }
+}
+
+var deleter = new XMLHttpRequest();
+var delete_url = "deletenode";
+deleter.onreadystatechange = function() {
+  if(deleter.readyState == 4 && deleter.status == 200){
+    console.log(deleter.responseText);
   }
 }
 
@@ -41,6 +50,11 @@ post_button.onclick = function(){
   port_status.innerHTML = '<i class="fa fa-refresh fa-spin fa-fw" style="color: blue;"></i>';
   latency.innerHTML = '<i class="fa fa-refresh fa-spin fa-fw" style="color: blue;"></i>';
   trash.innerHTML = '<i class="fa fa-trash" aria-hidden="true"></i>';
+
+  trash.onclick = function(address, port){
+    alert('Anduve');
+  }
+
 };
 
 var getter = new XMLHttpRequest();
@@ -70,6 +84,14 @@ getter.onreadystatechange = function() {
         latency.innerHTML = '<i class="fa fa-refresh fa-spin fa-fw" style="color: blue;"></i>';
       }
       trash.innerHTML = '<i class="fa fa-trash" aria-hidden="true"></i>';
+
+      trash.onclick = function(){
+        deleter.open("DELETE", delete_url, true);
+           deleter.send(JSON.stringify({
+             ip: node.ip,
+             port: node.port
+        }))
+      }
 
     });
   }
