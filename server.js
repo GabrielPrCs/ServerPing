@@ -1,25 +1,12 @@
 var http = require('http');
 var fs = require('fs');
 var ping = require('net-ping');
-var readline = require('readline');
 var net = require('net');
-var url_pk = require('url');
-
-
+var readline = require('readline');
 
 var rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
-})
-
-var bootstrap_css = null;
-fs.readFile('web_interface/bootstrap/bootstrap.min.css', function(err, data) {
-  bootstrap_css = data;
-});
-
-var bootstrap_js = null;
-fs.readFile('web_interface/bootstrap/bootstrap.min.js', function(err, data) {
-  bootstrap_js = data;
 });
 
 var custom_css = null;
@@ -37,16 +24,6 @@ fs.readFile('web_interface/main.html', function(err, data) {
   main = data;
 });
 
-var login = null;
-fs.readFile('web_interface/login.html', function(err, data) {
-  login = data;
-});
-
-var register = null;
-fs.readFile('web_interface/register.html', function(err, data) {
-  register = data;
-});
-
 function resolve_url(url) {
   var req = url.split('?');
   var ret;
@@ -54,18 +31,6 @@ function resolve_url(url) {
   switch (req[0]) {
     case '/':
     ret = main;
-    break;
-    case '/login.html':
-    ret = login;
-    break;
-    case '/register.html':
-    ret = register;
-    break;
-    case '/bootstrap/bootstrap.min.css':
-    ret = bootstrap_css;
-    break;
-    case '/bootstrap/bootstrap.min.js':
-    ret = bootstrap_js;
     break;
     case '/bootstrap/custom.css':
     ret = custom_css;
@@ -75,7 +40,6 @@ function resolve_url(url) {
     break;
     case '/getnodes':
     var result = nodes.status();
-    console.log(result);
     ret = JSON.stringify(result);
     break;
     default:
@@ -89,7 +53,7 @@ var session = ping.createSession();
 
 var Nodes_list = function() {
   this.nodes = [];
-  this.interval = 10000;
+  this.interval = 3000;
   var self = this;
   setInterval(function(){
     self.nodes.forEach(function(node){
@@ -123,7 +87,8 @@ Nodes_list.prototype.status = function() {
         port: node.port,
         ip_status: node.ip_status,
         port_status: node.port_status,
-        latency: node.latency
+        latency: node.latency,
+        refreshed: node.response_refreshed
       })
     }
   });
@@ -136,7 +101,8 @@ function Server_tester(req_ip, req_port){
   this.latency = 0;
   this.ip_status = false;
   this.port_status = false;
-  this.response_status_ready = false;
+  this.response_status_ready = true;
+  this.response_refreshed = false;
   this.interval = 10000;
   var self = this;
   console.log('Worker created for: ' + this.ip + ':' + this.port);
@@ -148,7 +114,10 @@ Server_tester.prototype.test_ip = function() {
   session.pingHost(this.ip, function(error, ip, sent, rcvd){
     if(error){
       console.log('Ping error: '  + error.toString());
+      self.ip_status = false;
+      self.port_status = false;
       self.response_status_ready = true;
+      self.response_refreshed = true;
     } else {
       self.latency = (rcvd.getTime() - sent.getTime()) / 2;
       self.ip_status = true;
@@ -169,11 +138,14 @@ Server_tester.prototype.test_port = function(){
     console.log('Connection established on ' + self.ip + ':' + self.port);
     self.port_status = true;
     self.response_status_ready = true;
+    self.response_refreshed = true;
   });
 
   socket.on('error', function(err){
     console.log('Failed to establish connection.');
+    self.port_status = false;
     self.response_status_ready = true;
+    self.response_refreshed = true;
   });
 };
 
