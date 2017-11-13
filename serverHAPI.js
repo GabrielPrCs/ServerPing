@@ -1,4 +1,4 @@
-var http = require('http');
+const Hapi = require('hapi');
 var fs = require('fs');
 var ping = require('net-ping');
 var net = require('net');
@@ -24,35 +24,100 @@ fs.readFile('web_interface/main.html', function(err, data) {
   main = data;
 });
 
-function resolve_url(url, res) {
-  var req = url.split('?');
-  var ret;
-  console.log('Resolve URL: ' + url);
-  switch (req[0]) {
-    case '/':
-    res.setHeader('Content-type', 'text/html');
-    ret = main;
-    break;
-    case '/bootstrap/custom.css':
-    res.setHeader('Content-type', 'text/css');
-    ret = custom_css;
-    break;
-    case '/scripts/requester.js':
-    res.setHeader('Content-type', 'text/javascript');
-    ret = requester;
-    break;
-    case '/getnodes':
-    res.setHeader('Content-type', 'application/json');
-    var result = nodes.status();
-    ret = JSON.stringify(result);
-    break;
-    default:
-    res.setHeader('Content-type', 'text/html');
-    ret = '404.html';
-    break;
-  }
-  return ret;
-}
+
+const server = new Hapi.Server();
+server.connection({
+    port: 8080
+});
+
+server.route({
+    method: 'GET',
+    path:'/',
+    handler: function (request, reply) {
+      console.log('GET request...');
+      var response = reply(main);
+      response.header('Content-type', 'text/html');
+    }
+});
+
+server.route({
+    method: 'GET',
+    path:'/bootstrap/custom.css',
+    handler: function (request, reply) {
+      console.log('GET request...');
+      var response = reply(custom_css);
+      response.header('Content-type', 'text/css');
+    }
+});
+
+server.route({
+    method: 'GET',
+    path:'/scripts/requester.js',
+    handler: function (request, reply) {
+      console.log('GET request...');
+      var response = reply(requester);
+      response.header('Content-type', 'text/javascript');
+    }
+});
+
+server.route({
+    method: 'GET',
+    path:'/getnodes',
+    handler: function (request, reply) {
+      console.log('GET request...');
+      var result = nodes.status();
+      var response =  reply(JSON.stringify(result));
+      response.header('Content-type', 'application/json');
+    }
+});
+
+server.route({
+    method: '*',
+    path:'/{p*}',
+    handler: function (request, reply) {
+      console.log('GET request...');
+      var response = reply('404.html');
+      response.header('Content-type', 'text/html');
+    }
+});
+
+server.route({
+    method: 'POST',
+    path:'/postnode',
+    handler: function (request, reply) {
+      console.log('POST request...')
+      var body = request.payload
+      node = JSON.parse(body);
+      console.log("Received request: add node - " + node);
+      nodes.add(node.ip, node.port);
+      var response  = reply('Node recived.');
+      response.header('Content-type', 'text/plain');
+    }
+});
+
+
+server.route({
+    method: 'DELETE',
+    path:'/deletenode',
+    handler: function (request, reply) {
+      console.log('DELETE request...');
+      var body = request.payload;
+      node = JSON.parse(body);
+      console.log("Received request: delete node - " + node.ip + ':' + node.port);
+      nodes.remove(node.ip, node.port);
+      var response = reply("Node removed");
+      response.header('Content-type', 'text/plain');
+    }
+});
+
+server.start((err) => {
+
+    if (err) {
+        throw err;
+    }
+    console.log('Server running at:', server.info.uri);
+});
+
 
 var session = ping.createSession();
 
@@ -164,44 +229,3 @@ Server_tester.prototype.test_port = function(){
 };
 
 var nodes = new Nodes_list();
-
-http.createServer(function (req, res) {
-  console.log('New incoming request...');
-
-  if(req.method == 'POST') {
-    console.log('POST request...')
-    var body = "";
-    req.on('data', function(data){
-      body += data.toString();
-    });
-    req.on('end',function(){
-      node = JSON.parse(body);
-      console.log("Received request: add node - " + node);
-      nodes.add(node.ip, node.port);
-      res.setHeader('Content-type', 'text/plain');
-      res.write("Node received");
-      res.end();
-    })
-  } else if (req.method == 'DELETE') {
-    console.log('DELETE request...');
-    var body = "";
-    req.on('data', function(data){
-      body += data.toString();
-    });
-    req.on('end', function(){
-      node = JSON.parse(body);
-      console.log("Received request: delete node - " + node.ip + ':' + node.port);
-      nodes.remove(node.ip, node.port);
-      res.setHeader('Content-type', 'text/plain');
-      res.write("Node removed");
-      res.end();
-    })
-  }
-  else if(req.method == 'GET') {
-    console.log('GET request...');
-    var rq = req.url.split('?');
-    res.write(resolve_url(req.url, res));
-    res.end();
-  }
-
-}).listen(8080);

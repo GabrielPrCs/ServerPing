@@ -3,7 +3,25 @@ var get_button = document.getElementById('get_button');
 var servers_table = document.getElementById('servers_table');
 var servers_table_body = document.getElementById('servers_table_body');
 
+function check_ip(ip){
+  var valid_ip = false;
+  var ip_component = ip.split('.');
+  var length = ip_component.length;
+  if(length == 4){
+    valid_ip = true;
+    for(var i = 0; i < 4; ++i){
+      var val = parseInt(ip_component[i]);
+      if(ip_component[i] == "" || (val < 0 || val > 255))
+        valid_ip = false;
+    }
+  }
+  return valid_ip;
+}
 
+function check_port(port){
+  var port_val = parseInt(port);
+  return port_val > 0 && port_val <= 65535
+}
 
 var poster = new XMLHttpRequest();
 var post_url = "postnode";
@@ -30,6 +48,15 @@ post_button.onclick = function(){
     return;
   }
 
+  if(!check_ip(ip)){
+    alert('La IP no es valida ---> Se esperaba XXX.XXX.XXX.XXX con 0 <= XXX <= 255');
+    return;
+  }
+  if(!check_port(port)){
+    alert('El puerto no es valido ---> Debe ser un valor entre 1 y 65535');
+    return;
+  }
+
   poster.open("POST", post_url, true);
   poster.send(JSON.stringify({
     ip: ip,
@@ -52,9 +79,13 @@ post_button.onclick = function(){
   trash.innerHTML = '<i class="fa fa-trash" aria-hidden="true"></i>';
 
   trash.onclick = function(address, port){
-    alert('Anduve');
+    trash.innerHTML = '<i class="fa fa-refresh fa-spin fa-fw" style="color: blue;"></i>';
+    deleter.open("DELETE", delete_url, true);
+    deleter.send(JSON.stringify({
+      ip: node.ip,
+      port: node.port
+    }))
   }
-
 };
 
 var getter = new XMLHttpRequest();
@@ -86,6 +117,7 @@ getter.onreadystatechange = function() {
       trash.innerHTML = '<i class="fa fa-trash" aria-hidden="true"></i>';
 
       trash.onclick = function(){
+        trash.innerHTML = '<i class="fa fa-refresh fa-spin fa-fw" style="color: blue;"></i>';
         deleter.open("DELETE", delete_url, true);
            deleter.send(JSON.stringify({
              ip: node.ip,
@@ -100,4 +132,4 @@ getter.onreadystatechange = function() {
 setInterval(function(){
   getter.open("GET", get_url, true);
   getter.send();
-}, 3000);
+}, 5000);
