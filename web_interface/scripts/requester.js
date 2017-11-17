@@ -57,34 +57,43 @@ post_button.onclick = function(){
     return;
   }
 
-  poster.open("POST", post_url, true);
-  poster.send(JSON.stringify({
-    ip: ip,
-    port: port
-  }));
+  var signal = true;
 
-  var row = servers_table_body.insertRow(servers_table_body.rows.length);
-  var address = row.insertCell(0);
-  var port_cell = row.insertCell(1);
-  var ip_status = row.insertCell(2);
-  var port_status = row.insertCell(3);
-  var latency = row.insertCell(4);
-  var trash = row.insertCell(5);
+  for(var i = 0; i < servers_table_body.rows.length && signal; i++)
+    if(servers_table_body.rows[i].cells[0].innerText == ip && servers_table_body.rows[i].cells[1].innerText == port)
+      signal = false;
+  
+  if(signal){
 
-  address.innerHTML = ip;
-  port_cell.innerHTML = port;
-  ip_status.innerHTML = '<i class="fa fa-refresh fa-spin fa-fw" style="color: blue;"></i>';
-  port_status.innerHTML = '<i class="fa fa-refresh fa-spin fa-fw" style="color: blue;"></i>';
-  latency.innerHTML = '<i class="fa fa-refresh fa-spin fa-fw" style="color: blue;"></i>';
-  trash.innerHTML = '<i class="fa fa-trash" aria-hidden="true"></i>';
+    poster.open("POST", post_url, true);
+    poster.send(JSON.stringify({
+      ip: ip,
+      port: port
+    }));
 
-  trash.onclick = function(address, port){
-    trash.innerHTML = '<i class="fa fa-refresh fa-spin fa-fw" style="color: blue;"></i>';
-    deleter.open("DELETE", delete_url, true);
-    deleter.send(JSON.stringify({
-      ip: node.ip,
-      port: node.port
-    }))
+    var row = servers_table_body.insertRow(servers_table_body.rows.length);
+    var address = row.insertCell(0);
+    var port_cell = row.insertCell(1);
+    var ip_status = row.insertCell(2);
+    var port_status = row.insertCell(3);
+    var latency = row.insertCell(4);
+    var trash = row.insertCell(5);
+
+    address.innerHTML = ip;
+    port_cell.innerHTML = port;
+    ip_status.innerHTML = '<i class="fa fa-refresh fa-spin fa-fw" style="color: blue;"></i>';
+    port_status.innerHTML = '<i class="fa fa-refresh fa-spin fa-fw" style="color: blue;"></i>';
+    latency.innerHTML = '<i class="fa fa-refresh fa-spin fa-fw" style="color: blue;"></i>';
+    trash.innerHTML = '<i class="fa fa-trash" aria-hidden="true"></i>';
+
+    trash.onclick = function(address, port){
+      trash.innerHTML = '<i class="fa fa-refresh fa-spin fa-fw" style="color: blue;"></i>';
+      deleter.open("DELETE", delete_url, true);
+      deleter.send(JSON.stringify({
+        ip: node.ip,
+        port: node.port
+      }))
+    }
   }
 };
 

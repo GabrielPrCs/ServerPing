@@ -74,11 +74,11 @@ Nodes_list.prototype.exists = function(ip, port) {
       return i;
     }
   }
-  return false;
+  return -1;
 }
 
 Nodes_list.prototype.add = function(ip, port) {
-  if(!this.exists(ip, port)){
+  if(this.exists(ip, port) == -1){
     var node = new Server_tester(ip, port);
     this.nodes.push(node);
   }
@@ -176,7 +176,7 @@ http.createServer(function (req, res) {
     });
     req.on('end',function(){
       node = JSON.parse(body);
-      console.log("Received request: add node - " + node);
+      console.log("Received request: add node - " + node.ip + ":" + node.port);
       nodes.add(node.ip, node.port);
       res.setHeader('Content-type', 'text/plain');
       res.write("Node received");

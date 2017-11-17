@@ -139,11 +139,11 @@ Nodes_list.prototype.exists = function(ip, port) {
       return i;
     }
   }
-  return false;
+  return -1;
 }
 
 Nodes_list.prototype.add = function(ip, port) {
-  if(!this.exists(ip, port)){
+  if(this.exists(ip, port) == -1){
     var node = new Server_tester(ip, port);
     this.nodes.push(node);
   }
